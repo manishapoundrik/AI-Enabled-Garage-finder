@@ -1,225 +1,179 @@
-import { useState, useRef, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  FlatList,
+} from "react-native";
+import { useState, useRef } from "react";
+import { Stack } from "expo-router";
+
+const API_URL = "https://mechanic-finder-backend.onrender.com";
+
+type Message = {
+  role: "user" | "ai";
+  text: string;
+};
 
 export default function AIPage() {
   const [question, setQuestion] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
 
-  const askAI = async () => {
+  const flatListRef = useRef<FlatList>(null);
+
+  const sendMessage = async () => {
     if (!question.trim() || loading) return;
 
-    const userMsg = { type: "user", text: question };
-    setMessages(prev => [...prev, userMsg]);
+    const userMsg: Message = { role: "user", text: question };
+    setMessages((prev) => [...prev, userMsg]);
+
     setQuestion("");
     setLoading(true);
 
     try {
-      const res = await fetch("https://mechanic-finder-backend.onrender.com/api/ai/ask", {
+      const res = await fetch(`${API_URL}/api/ai/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: question.trim() })
+        body: JSON.stringify({ question }),
       });
 
       const data = await res.json();
-      const botMsg = {
-        type: "bot",
-        text: data.reply || "Quick check: Fuel? Battery? Find mechanics nearby!"
+
+      const aiMsg: Message = {
+        role: "ai",
+        text:
+          data.reply ||
+          `Check fuel, battery, tyre or contact a mechanic.`,
       };
 
-      setMessages(prev => [...prev, botMsg]);
-    } catch (err) {
-      console.log("AI ERROR:", err);
-      setMessages(prev => [...prev, { 
-        type: "bot", 
-        text: "⚠️ Network error. Check connection!" 
-      }]);
+      setMessages((prev) => [...prev, aiMsg]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "ai", text: "⚠️ Server error. Try again." },
+      ]);
     } finally {
       setLoading(false);
+      setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
     }
   };
 
-  // Auto-scroll to bottom
-  useEffect(() => {
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  }, [messages]);
-
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <View style={{ flex: 1, backgroundColor: "#111" }}>
-        
-     <View style={{
-  paddingVertical: 10,
-  borderBottomWidth: 1,
-  borderBottomColor: "#222",
-  marginBottom: 10
-}}>
-  <Text style={{
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center"
-  }}>
-    Mechanic AI
-  </Text>
-</View>
+    <>
+      <Stack.Screen
+        options={{
+          title: "AI Mechanic",
+          headerStyle: { backgroundColor: "#000" },
+          headerTintColor: "#fff",
+          headerTitleAlign: "center",
+        }}
+      />
 
-        {/* Messages Area - FLEX 1 = Takes remaining space */}
-        <ScrollView
-          ref={scrollViewRef}
-          style={{ flex: 1 }} // ← flex: 1 + marginBottom
-          contentContainerStyle={{ 
-            paddingBottom: 80,
-            flexGrow: 1 
-          }}
-          showsVerticalScrollIndicator={false}
-        >{messages.length === 0 ? (
-  <View style={{
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20
-  }}>
-    <Text style={{
-      color: "#fff",
-      fontSize: 20,
-      fontWeight: "600",
-      marginBottom: 10
-    }}>
-      🤖 AI Mechanic
-    </Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: "#000", paddingBottom: 10 }}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {/* EMPTY STATE */}
+        {messages.length === 0 && (
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+              paddingHorizontal: 20,
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 24,
+                fontWeight: "bold",
+              }}
+            >
+              🤖 AI Mechanic
+            </Text>
 
-    <Text style={{
-      color: "#aaa",
-      textAlign: "center",
-      lineHeight: 22
-    }}>
-      Ask anything about your vehicle problems:
-    </Text>
+            <Text
+              style={{
+                color: "#aaa",
+                marginTop: 10,
+                textAlign: "center",
+              }}
+            >
+              Ask anything about your vehicle 🚗
+            </Text>
+          </View>
+        )}
 
-    <Text style={{
-      color: "#666",
-      marginTop: 10,
-      textAlign: "center"
-    }}>
-      • Vehicle won't start{"\n"}
-      • Engine overheating{"\n"}
-      • Strange noise
-    </Text>
-  </View>
-) : (
-            messages.map((msg, index) => (
-              <View
-                key={index}
-                style={{
-                  alignSelf: msg.type === "user" ? "flex-end" : "flex-start",
-                  backgroundColor: msg.type === "user" ? "#f59e0b" : "#2a2a2a",
-                  paddingHorizontal: 16,
-                  paddingVertical: 12,
-                  marginVertical: 6,
-                  borderRadius: 20,
-                  maxWidth: "85%",
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 4,
-                  elevation: 5
-                }}
-              >
-                <Text style={{ 
-                  color: "#fff", 
-                  fontSize: 16,
-                  lineHeight: 22 
-                }}>
-                  {msg.text}
-                </Text>
-              </View>
-            ))
-          )}
-
-          {/* Loading indicator */}
-          {loading && (
-            <View style={{
-              alignSelf: "flex-start",
-              backgroundColor: "#3a3a3a",
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              marginVertical: 6,
-              borderRadius: 20,
-              maxWidth: "85%"
-            }}>
-              <Text style={{ 
-                color: "#bbb", 
-                fontSize: 16,
-                fontStyle: "italic" 
-              }}>
-                AI is typing... 🤔
-              </Text>
+        {/* CHAT LIST */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(_, i) => i.toString()}
+          contentContainerStyle={{ padding: 10 }}
+          renderItem={({ item }) => (
+            <View
+              style={{
+                backgroundColor:
+                  item.role === "user" ? "#f59e0b" : "#1f1f1f",
+                padding: 12,
+                borderRadius: 15,
+                marginVertical: 5,
+                alignSelf:
+                  item.role === "user" ? "flex-end" : "flex-start",
+                maxWidth: "80%",
+              }}
+            >
+              <Text style={{ color: "#fff" }}>{item.text}</Text>
             </View>
           )}
-        </ScrollView>
+        />
 
-        {/* Input Area - FIXED at bottom */}
-        <View style={{
-  flexDirection: "row",
-  padding: 10,
-  backgroundColor: "#1a1a1a",
-  borderTopWidth: 1,
-  borderTopColor: "#333"
-}}>
+        {/* INPUT BAR (FIXED CLEAN DESIGN) */}
+        <View
+          style={{
+            flexDirection: "row",
+            padding: 10,
+            backgroundColor: "#000",
+            borderTopWidth: 1,
+            borderColor: "#222",
+          }}
+        >
           <TextInput
             value={question}
             onChangeText={setQuestion}
-            placeholder="Type your car problem..."
-            placeholderTextColor="#888"
-            editable={!loading}
-            multiline={false}
+            placeholder="Type your problem..."
+            placeholderTextColor="#666"
             style={{
               flex: 1,
-              backgroundColor: "#2a2a2a",
-              borderRadius: 25,
-              paddingHorizontal: 20,
-              paddingVertical: 12,
+              backgroundColor: "#111",
               color: "#fff",
-              fontSize: 16,
-              marginRight: 10,
-              maxHeight: 50 // ← Prevent expansion
-            }}
-            onSubmitEditing={askAI}
-            returnKeyType="send"
-          />
-          
-          <TouchableOpacity
-            onPress={askAI}
-            disabled={loading || !question.trim()}
-            activeOpacity={0.7}
-            style={{
-              backgroundColor: loading || !question.trim() 
-                ? "#555" 
-                : "#f59e0b",
-              paddingHorizontal: 20,
-              paddingVertical: 12,
               borderRadius: 25,
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+            }}
+          />
+
+          <TouchableOpacity
+            onPress={sendMessage}
+            disabled={loading}
+            style={{
+              marginLeft: 10,
+              backgroundColor: loading ? "#444" : "#007AFF",
+              borderRadius: 25,
+              paddingHorizontal: 18,
               justifyContent: "center",
-              minWidth: 70
-              
             }}
           >
-            <Text style={{ 
-              color: "#fff", 
-              fontWeight: "bold",
-              fontSize: 16 
-            }}>
-              {loading ? "⏳" : "Send"}
+            <Text style={{ color: "#fff", fontWeight: "600" }}>
+              {loading ? "..." : "Send"}
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </>
   );
 }

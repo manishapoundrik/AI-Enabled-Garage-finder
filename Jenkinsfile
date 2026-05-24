@@ -9,7 +9,8 @@ pipeline {
 
         stage('Clone') {
             steps {
-                git 'https://github.com/manishapoundrik/AI-Enabled-Garage-finder.git'
+                git branch: 'main',
+                url: 'https://github.com/manishapoundrik/AI-Enabled-Garage-finder.git'
             }
         }
 

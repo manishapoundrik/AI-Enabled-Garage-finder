@@ -62,7 +62,10 @@
           "locationWhenInUsePermission": "Allow Mechanic Finder to use your location to find nearby mechanics."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-image",
+      "expo-splash-screen",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -77,5 +80,5 @@
       }
     },
     "owner": "manishap07"
-   }
+  }
 }

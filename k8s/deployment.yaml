@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: garage-finder-deployment
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: garage-finder
+
+  template:
+    metadata:
+      labels:
+        app: garage-finder
+
+    spec:
+      containers:
+      - name: garage-finder
+
+        image: manishapoundrik/garage-finder-app:v1
+
+        ports:
+        - containerPort: 8081
